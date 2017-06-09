@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+    <title>curium-responsive-image demo</title>
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+
+    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+    <link rel="import" href="../curium-responsive-image.html">
+
+    <custom-style>
+      <style is="custom-style" include="demo-pages-shared-styles">
+        .centered {
+          max-width: none;
+        }
+        curium-responsive-image {
+          overflow: hidden;
+        }
+      </style>
+    </custom-style>
+  </head>
+  <body>
+    <div class="vertical-section-container centered">
+      <h3>Basic curium-responsive-image demo</h3>
+      <demo-snippet>
+        <template>
+          <curium-responsive-image
+            src-map="320w-240h sample-320w.jpg,
+                     640w-480h sample-640w.jpg,
+                     1280w-960h sample-1280w.jpg,
+                     sample.jpg"
+            sizing="fit-width">
+            <img></img>
+          </curium-responsive-image>
+        </template>
+      </demo-snippet>
+    </div>
+  </body>
+</html>

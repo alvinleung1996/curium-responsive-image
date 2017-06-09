@@ -1,0 +1,195 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../polymer/lib/utils/debounce.html">
+<link rel="import" href="../polymer/lib/utils/flattened-nodes-observer.html">
+
+<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+
+<dom-module id="curium-responsive-image">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      :host([sizing="cover"]), :host([sizing="contain"]) {
+        position: relative;
+      }
+      :host([sizing="cover"]) > ::slotted(*),
+      :host([sizing="contain"]) > ::slotted(*) {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        bottom: 0px;
+        left: 0px;
+      }
+      :host([sizing="fit-width"]) > ::slotted(*) {
+        width: 100%;
+      }
+      :host([sizing="fit-height"]) > ::slotted(*) {
+        height: 100%;
+      }
+    </style>
+    <slot></slot>
+  </template>
+
+  <script>
+    /**
+     * `curium-responsive-image`
+     * Element will load the image that most suitable to the element size
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class CuriumResponsiveImage extends Polymer.mixinBehaviors(Polymer.IronResizableBehavior, Polymer.Element) {
+
+      static get is() { return 'curium-responsive-image'; }
+
+      static get properties() {
+        return {
+          srcMap: {
+            type: String,
+            value: ''
+          },
+          _computedSrcMap: {
+            type: Array,
+            computed: '_computeComputedSrcMap(srcMap)'
+          },
+          sizing: {
+            type: String,
+            value: 'fit-width',
+            reflectToAttribute: true
+          },
+          src: {
+            type: String,
+            readOnly: true,
+            notify: true,
+            reflectToAttribute: true
+          },
+
+          srcAttribute: {
+            type: String,
+            value: 'src'
+          },
+
+          resizeDelay: {
+            type: Number,
+            value: 200
+          }
+        };
+      }
+
+      static get observers() {
+        return [
+          '_onSrcMapChanged(_computedSrcMap, sizing)',
+          '_onSrcChanged(src, srcAttribute)'
+        ];
+      }
+
+      ready() {
+        super.ready();
+        this.addEventListener('iron-resize', e => this._onIronResize(e));
+      }
+
+      _computeComputedSrcMap(rawSrcMap) {
+        let srcMap = rawSrcMap.split(',')
+                     .map(e => {
+                       let data = null;
+                       let matches = e.match(/^[ \n]*(?:(\d+)[wW]-(\d+)[hH] )?(.+?)[ \n]*$/);
+                       if (matches != null) {
+                         data = {};
+                         [, data.width, data.height, data.src] = matches;
+                         data.isDefault = data.width === undefined || data.height === undefined;
+                         data.width = this._parseInt(data.width);
+                         data.height = this._parseInt(data.height);
+                       }
+                       return data;
+                     })
+                     .filter(e => e != null);
+        return srcMap;
+      }
+
+      _onSrcMapChanged(computedSrcMap, sizing) {
+        this._updateSrc();
+      }
+
+      _onIronResize(evt) {
+        this._updateSrc();
+      }
+
+      _updateSrc() {
+        // Debouncer ensures the src is calculated only after the layout is stablized during attach.
+        this._updateSrcDebouncer = Polymer.Debouncer.debounce(this._updateSrcDebouncer, Polymer.Async.timeOut.after(this.resizeDelay), () => {
+          let src = null;
+          if (this._computedSrcMap) {
+            let containerWidth = this._getContainerWidth();
+            let containerHeight = this._getContainerHeight();
+            for (let i = 0, map; map = this._computedSrcMap[i]; ++i) {
+              if (map.isDefault) {
+                src = map.src;
+                break;
+              } else if (this.sizing === 'cover') {
+                if (map.width >= containerWidth && map.height >= containerHeight) {
+                  src = map.src;
+                  break;
+                }
+              } else if (this.sizing === 'contain') {
+                if (map.width >= containerWidth || map.height >= containerHeight) {
+                  src = map.src;
+                  break;
+                }
+              } else if (this.sizing === 'fit-width') {
+                if (map.width >= containerWidth) {
+                  src = map.src;
+                  break;
+                }
+              } else if (this.sizing === 'fit-height') {
+                if (map.height >= containerHeight) {
+                  src = map.src;
+                  break;
+                }
+              }
+            }
+          }
+          this._setSrc(src);
+        });
+      }
+
+      _onSrcChanged(src, srcAttribute) {
+        let childList = Polymer.FlattenedNodesObserver.getFlattenedNodes(this).filter(n => n.nodeType === Node.ELEMENT_NODE);
+
+        let prevSrcAttribute = this._prevSrcAttribute;
+        this._prevSrcAttribute = srcAttribute;
+
+        for (let i = 0, child; child = childList[i]; ++i) {
+          if (srcAttribute !== prevSrcAttribute && prevSrcAttribute) {
+            child.removeAttribute(prevSrcAttribute);
+          }
+          if (srcAttribute) {
+            if (src) {
+              child.setAttribute(srcAttribute, src);
+            } else {
+              child.removeAttribute(srcAttribute);
+            }
+          }
+        }
+      }
+
+      _getContainerWidth() {
+        return this.clientWidth;
+      }
+      _getContainerHeight() {
+        return this.clientHeight;
+      }
+
+      _parseInt(value) {
+        // IE does not support Number.parseInt
+        return Number.parseInt ? Number.parseInt(value) : window.parseInt(value);
+      }
+
+    }
+
+    window.customElements.define(CuriumResponsiveImage.is, CuriumResponsiveImage);
+    window.Curium = window.Curium || {};
+    Curium.CuriumResponsiveImage = CuriumResponsiveImage;
+  </script>
+</dom-module>
