@@ -59,6 +59,10 @@
             value: 'fit-width',
             reflectToAttribute: true
           },
+          preventLoad: {
+            type: Boolean,
+            value: false
+          },
           src: {
             type: String,
             readOnly: true,
@@ -80,7 +84,7 @@
 
       static get observers() {
         return [
-          '_onSrcMapChanged(_computedSrcMap, sizing)',
+          '_onSrcMapChanged(_computedSrcMap, sizing, preventLoad)',
           '_onSrcChanged(src, srcAttribute)'
         ];
       }
@@ -95,7 +99,7 @@
                      .map(e => {
                        let data = null;
                        let matches = e.match(/^[ \n]*(?:(\d+)[wW]-(\d+)[hH] )?(.+?)[ \n]*$/);
-                       if (matches != null) {
+                       if (matches !== null) {
                          data = {};
                          [, data.width, data.height, data.src] = matches;
                          data.isDefault = data.width === undefined || data.height === undefined;
@@ -104,11 +108,11 @@
                        }
                        return data;
                      })
-                     .filter(e => e != null);
+                     .filter(e => e !== null);
         return srcMap;
       }
 
-      _onSrcMapChanged(computedSrcMap, sizing) {
+      _onSrcMapChanged(computedSrcMap, sizing, preventLoad) {
         this._updateSrc();
       }
 
@@ -120,7 +124,7 @@
         // Debouncer ensures the src is calculated only after the layout is stablized during attach.
         this._updateSrcDebouncer = Polymer.Debouncer.debounce(this._updateSrcDebouncer, Polymer.Async.timeOut.after(this.resizeDelay), () => {
           let src = null;
-          if (this._computedSrcMap) {
+          if (this._computedSrcMap && !this.preventLoad) {
             let containerWidth = this._getContainerWidth();
             let containerHeight = this._getContainerHeight();
             for (let i = 0, map; map = this._computedSrcMap[i]; ++i) {
