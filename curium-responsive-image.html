@@ -54,6 +54,14 @@
             type: Array,
             computed: '_computeComputedSrcMap(srcMap)'
           },
+          width: {
+            type: Number,
+            value: -1
+          },
+          height: {
+            type: Number,
+            value: -1
+          },
           sizing: {
             type: String,
             value: 'fit-width',
@@ -84,7 +92,7 @@
 
       static get observers() {
         return [
-          '_onSrcMapChanged(_computedSrcMap, sizing, preventLoad)',
+          '_onSrcMapChanged(_computedSrcMap, width, height, sizing, preventLoad)',
           '_onSrcChanged(src, srcAttribute)'
         ];
       }
@@ -112,12 +120,12 @@
         return srcMap;
       }
 
-      _onSrcMapChanged(computedSrcMap, sizing, preventLoad) {
+      _onSrcMapChanged(computedSrcMap, width, height, sizing, preventLoad) {
         this._debouncedUpdateSrc();
       }
 
       _onIronResize(evt) {
-        this._debouncedUpdateSrc();
+        if (this.width < 0 && this.height < 0) this._debouncedUpdateSrc();
       }
 
       _debouncedUpdateSrc() {
@@ -130,8 +138,7 @@
       updateSrc() {
         let src = null;
         if (this._computedSrcMap && !this.preventLoad) {
-          let containerWidth = this._getContainerWidth();
-          let containerHeight = this._getContainerHeight();
+          let [containerWidth, containerHeight] = this._getContainerSize();
           for (let i = 0, map; map = this._computedSrcMap[i]; ++i) {
             if (map.isDefault) {
               src = map.src;
@@ -182,11 +189,8 @@
         }
       }
 
-      _getContainerWidth() {
-        return this.clientWidth;
-      }
-      _getContainerHeight() {
-        return this.clientHeight;
+      _getContainerSize() {
+        return (this.width < 0 && this.height < 0) ? [this.clientWidth, this.clientHeight] : [this.width, this.height];
       }
 
       _parseInt(value) {
