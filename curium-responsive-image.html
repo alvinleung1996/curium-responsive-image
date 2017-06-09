@@ -113,49 +113,53 @@
       }
 
       _onSrcMapChanged(computedSrcMap, sizing, preventLoad) {
-        this._updateSrc();
+        this._debouncedUpdateSrc();
       }
 
       _onIronResize(evt) {
-        this._updateSrc();
+        this._debouncedUpdateSrc();
       }
 
-      _updateSrc() {
+      _debouncedUpdateSrc() {
         // Debouncer ensures the src is calculated only after the layout is stablized during attach.
         this._updateSrcDebouncer = Polymer.Debouncer.debounce(this._updateSrcDebouncer, Polymer.Async.timeOut.after(this.resizeDelay), () => {
-          let src = null;
-          if (this._computedSrcMap && !this.preventLoad) {
-            let containerWidth = this._getContainerWidth();
-            let containerHeight = this._getContainerHeight();
-            for (let i = 0, map; map = this._computedSrcMap[i]; ++i) {
-              if (map.isDefault) {
+          this.updateSrc();
+        });
+      }
+
+      updateSrc() {
+        let src = null;
+        if (this._computedSrcMap && !this.preventLoad) {
+          let containerWidth = this._getContainerWidth();
+          let containerHeight = this._getContainerHeight();
+          for (let i = 0, map; map = this._computedSrcMap[i]; ++i) {
+            if (map.isDefault) {
+              src = map.src;
+              break;
+            } else if (this.sizing === 'cover') {
+              if (map.width >= containerWidth && map.height >= containerHeight) {
                 src = map.src;
                 break;
-              } else if (this.sizing === 'cover') {
-                if (map.width >= containerWidth && map.height >= containerHeight) {
-                  src = map.src;
-                  break;
-                }
-              } else if (this.sizing === 'contain') {
-                if (map.width >= containerWidth || map.height >= containerHeight) {
-                  src = map.src;
-                  break;
-                }
-              } else if (this.sizing === 'fit-width') {
-                if (map.width >= containerWidth) {
-                  src = map.src;
-                  break;
-                }
-              } else if (this.sizing === 'fit-height') {
-                if (map.height >= containerHeight) {
-                  src = map.src;
-                  break;
-                }
+              }
+            } else if (this.sizing === 'contain') {
+              if (map.width >= containerWidth || map.height >= containerHeight) {
+                src = map.src;
+                break;
+              }
+            } else if (this.sizing === 'fit-width') {
+              if (map.width >= containerWidth) {
+                src = map.src;
+                break;
+              }
+            } else if (this.sizing === 'fit-height') {
+              if (map.height >= containerHeight) {
+                src = map.src;
+                break;
               }
             }
           }
-          this._setSrc(src);
-        });
+        }
+        this._setSrc(src);
       }
 
       _onSrcChanged(src, srcAttribute) {
